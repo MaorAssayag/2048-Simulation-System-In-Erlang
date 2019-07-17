@@ -62,18 +62,125 @@ The system was developed in Erlang (21.0), spread over 2,500 lines of code and d
   - Responsibility for communication and data transfer between the simulation servers (secondary) and the user interface as well as backup on the backup server.    
   - Responsibility for managing the processes, logic and logic of the game in real time.  
   - Monitoring the secondary servers and the backup server to protect against falls for proper operation.  
-  - Realized using gen_server  
+  - Implemented using gen_server  
   - If a simulation server falls and provides only partial information (ie, missing statistics on unapproved simulations), then the main server will replace the remaining tasks and add to the remaining secondary servers in real time.  
   - Maintaining the user's game mode - including calculating the new game mode, whether the game is over, whether the user has lost or won (analyzing the data structures in which the new game is stored).  
   - The game that the user is performing in Live, we have decided to accept the inter-process communication.  
   
-**Architecture uses gameplay**  
+**Architecture useed in the live gameplay**  
   - A master process that manages the game and communication against all sub-processes, works concurrently with the main_server server and receives requests from it directly with the user's move. Role of the master process to provide the main server the new board after the move, the game mode (finished \ win or loss) and current score.  
-  - The main server has a data structure that tracks the sub-processes that make up the board, is the only one that will create or destroy them.  
+  - The main server has a data structure that paths the sub-processes that make up the board, is the only one that will create or destroy them.  
   - 4 top processes that are responsible for communicating with a maximum of 4 slave processes each.
   Each slave process holds a value and location, and can modify it or send it to the pid that is attached to the application.  
   - In making a new move, the master server will ask 4 top servers to supply the 4 lines of the board. Each top process will receive a list of the processes on its line with the request, and it must return a reply to the master after adding its line values.  
   - At the end of the board collection, the master will activate the game logic with the desired move on the current board, run analysis to check the end of the game \ victory and score and send the results with the new board to the main server.  
   - The main server will create new processes / kill processes that are no longer listed and update the process board on record in state.  
 
- <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/5.png" width="600">
+ <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/5.png" width="800">
+
+</br> </br> 
+## UI Server
+**Properties**  
+  - Implemented as **wx_object**  
+  - The server is the user interface (ui_server) that communicates directly with the main server (main_server).  
+  - Management of the graphical display and user interface - real-time game, simulation console and statistics in real time.  
+  - Identifying user-pressed keys (arrow keys and spaces), communicating with the main server to request a response  
+  - Manage graphical elements in the user interface (server tables and their status, statistics, setting simulation parameters, user game and more)  
+  
+**UI**
+- **Left Zone** - A real-time game controlled by the user. The game is maintained on the main server by a process logger (each slot is a process as part of a "pyramid" of processes that interact with them).  
+- **Right Zone** - Game Simulation Console.
+Allows the user complete control over the creation of x simulations (bots) on simulation servers that connect to the main server (other nodes.) You can control the simulation parameters (win threshold for bot, the next step selection method for the bot)  
+- **Lower Zone** - Status Statistics that are updated frequently from the simulation servers through the main server.  
+
+ <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/simulations1.PNG" width="600">  
+ 
+ </br> </br> 
+## Backup Server
+**Properties**  
+  - Implemented using **gen_server**
+  - Its function is to back up all the data collected so far in simulations (for each simulation parameter combination), communicates directly with the main server (main_server) and, if necessary, with simulation servers (simulation_server).
+  - Monitoring the central server to protect against falls to continue normal operation - If the main server is down, the backup server will select one of the simulation servers and ask it to become a primary server. Switching to a new UI display (after the main server has been dropped) is immediate.
+  - When a new primary server is installed, the backup server will send an update message with the current database rule to continue normal operation. The new main server also monitors the backup server so that we can update the user interface according to the status of the backup server.  
+  
+ <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/backup.png" width="500">  
+
+ 
+  </br> </br> 
+## Simulation Server
+**Properties**  
+  - Implemented using **gen_server**
+  - Multiple, not limited to the number of stations (Nodes) that can establish it and connect to the main server.
+  - Each simulation server will receive the number of simulations it is required to perform (for example, 200 simulations of games are required so it will set up 200 bot processes when each process is required for a game icon).
+  - Each such process will calculate the game locally and its mode according to the actions (bot) it manages.
+  - Initializes a table of ets that is common to all processes on the server - To prevent a bottleneck of update messages from the various processes, you can directly update the results (by atomic operations in the ets directory).
+  - When a primary server is down, the backup server selects a simulation server and asks it to become a primary server instead (ie close the simulation server and set up a main server).
+  - The simulation parameters determine how each bot will manage the game, a detailed explanation below.
+
+
+  </br> </br> 
+## Simulation parameters
+**Threshold**  
+Threshold value allows bots to win the game. Without learning a machine or taking into account in-depth calculation (for each step to calculate a few steps ahead), reaching the value of 2048 in a slot to win is a complex task. To do this, we can define the threshold value of the threshold and thus see slightly more interesting data. We allow the threshold value to be changed to [2048, 1024, 512, 256, 128].  
+
+**Decision ID**  
+In order to enable variation in simulations, we can choose between 5 modes of action for the bots behavior when they are required to perform the following step:  
+
+- **Random**  
+The bot performs random moves that are evenly distributed
+[up, down, right, left]. This simulation is naturally the fastest and the number of wins is expected to be the smallest of a large sample and compared to other methods.
+
+- **Max score**   
+  The bot calculates the 4 possible results after each move separately [up, down, right, left].  
+  For results we filter for games that are not over (ie we have not lost). From these games we choose the game with the maximum score and proceed to the next step. Of course if all moves lead to a dead end (the game is over) then the bot will summarize the results.  
+
+  For each separate calculation, not only does the logic of the game follow the desired move (eg sliding to the right), but also analyzes the state of the game (ended / victory).  
+ <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/maxscore.png" width="450">  
+
+
+- **Stay Alive**  
+  The bot calculates sequentially, if the move leads to immediate loss, try to calculate a different displacement. When the goal is to make as many moves as possible (stay alive).  
+
+  For each separate calculation, not only does the logic of the game follow the desired move (eg sliding to the right), but also analyzes the state of the game (ended / victory).
+ <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/stayalive.png" width="400">  
+
+
+
+- **Max Merged Tiles**   
+  The bot calculates the 4 possible outcomes after performing each move separately [up, down, right, left]. For results we filter for games that are not over (i.e. we have not lost).  
+  From these games we select the game with the maximum number of squares and proceed to the next step. Of course if all moves lead to a dead end (the game is over) then the bot will summarize the results.  
+
+  For each separate calculation, not only does the logic of the game follow the desired move (eg sliding to the right), but also analyzes the state of the game (ended / victory).  
+ <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/merged.png" width="400">  
+
+
+- **Heuristic score**   
+  The bot calculates the 4 possible outcomes after performing each move separately [up, down, right, left]. On the results we perform an analysis that has proven to be the most optimal in terms of number of wins for 2048.  
+
+  The general idea of the method is to assign points to linear paths in the board (for example, to 8 tracks) and to select the maximum score of the tracks as a score that represents the test. This method is usually applied in depth (some forward moves), although we did not do so for the purpose of the project.  
+
+  We decided to focus on 2 linear tracks, as follows:
+
+<img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/heurostic.png" width="400">  
+
+
+  For each path we calculate the score as follows:  
+<img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/eval1.png" width="150">  
+<img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/eval2.png" width="200">  
+
+  When we chose r to be 0.5 (we rely on the analysis published in the next link).  
+  For each step calculation, not only does the game logic follow the desired move (eg sliding to the right), but it also analyzes the game mode (ended / win) and the scoring analysis. Finally the move was chosen with the highest score.    
+<img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/heurostic2.png" width="400"> 
+
+
+### More information
+How to run etc in the following <a href="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/2048Erlang.pdf">pdf (Hebrew)</a>.
+
+
+### Creators
+*Maor Assayag*  
+Computer Engineer, Ben-gurion University, Israel
+
+*Refhael Shetrit*  
+Computer Engineer, Ben-gurion University, Israel  
+
