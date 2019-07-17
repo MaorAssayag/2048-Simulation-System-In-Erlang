@@ -29,21 +29,21 @@ The real-time game is maintained by two servers (the **user interface server** a
 ## System structure
 The system was developed in Erlang (21.0), spread over 2,500 lines of code and divided into 3 main entities:
 
-1. **Main computer (single at a time point)**
+**1. Main computer (single at a time point)**  
   Where the main server and the ui_server server will run.  
   • Management of the graphical display and user interface - real-time game, simulation console and statistics in real time.  
   • Responsibility for communication and data transfer between the simulation servers (secondary) and the user interface as well as backup on the backup server.  
   • Responsibility for managing the processes, logic and logic of the game in real time.  
   • Monitoring the secondary servers and the backup server to protect against falls for proper operation.    
 
-2. **A secondary computer (multi)**
+**2. A secondary computer (multi)**  
   On which a simulation server will run, which connects to the main server that monitors it (connect).  
   • Continually receiving requests for the desired number of simulations. For each game, a process is started that simulates bot according to the simulation parameters.  
   • Updating the simulation parameters that decide how the bot will choose the next step - from naive algorithms (random moves, maximum scoring) to algorithms used in machine learning (see below).  
   • Send an asynchronous response to the main server with intermediate results on the simulator statistics to update the graphic display.  
   • If necessary, a secondary computer will kill the simulation server and become the primary server while preserving the collected data.  
 
-3. **A backup computer (single)** 
+**3. A backup computer (single)**    
   On which the backup server will be run, to which the main server connects.
   • Maintain an ets-based database for all simulation data (for each parameter combination, the statistics collected so far must be kept).  
   • Receive frequent updates from the main server and update the database.  
