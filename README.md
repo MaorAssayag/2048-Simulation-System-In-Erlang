@@ -2,12 +2,11 @@
 
 # 2048-Simulation-System-In-Erlang
 Concurrent and Distributed 2048 Simulation Systems implemented in Erlang OTP (Ver 21.0).
-
 </br> </br> 
 ## Background
-2048 is a simple and addictive network game, with simple rules: the board includes 16 squares, with colored squares with double numbers. The controls are 4 arrow keys on the elements that move the squares as far as possible to the right, left, up or down. After each slide a new square appears on the screen.
+2048 is a simple and addictive game, with simple rules: the board includes 16 squares, with colored squares with double numbers. The controls are 4 arrow keys on the elements that move the squares as far as possible to the right, left, up or down. After each slide a new square appears on the screen.
 
-When the player pushes two adjacent squares with the same value, for example 8 and 8, they connect and turn into the sum of 16 numbers in this case. The goal is to reach a square of 2048. If all the tiles in the board are occupied and there is no more space to move, you are disqualified and a new game must begin. A round or two is enough to understand the principle, and you can see a live demo of the game by clicking <a href="http://2048game.com/">here</a>.
+When the player pushes two adjacent squares with the same value, for example 8 and 8, they connect and turn into their sum, 16. The goal is to reach a square of 2048. If all the tiles in the board are occupied and there is no more space to move, you are lost and a new game must begin. A round or two is enough to understand the principle, and you can try a live demo of the game by clicking <a href="http://2048game.com/">here</a>.
 
 <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/git_asset1.jpg" width="300">
 
@@ -15,14 +14,14 @@ When the player pushes two adjacent squares with the same value, for example 8 a
 ## The Basic Idea
 The system is divided into 2: a decentralized and integrated **simulation center** and a live **user game** of 2048 with a real-time response.
 
-The **simulations center** allows the running of simulations of games in the background according to the definition of running characteristics in the user interface (choose algorithm for a bot, desired slot value for the win and the number of desired runs) and receiving statistics from the total number of servers connected to the main server.  
-The system has protection against falls, so if a simulation server falls and does not suffice to provide statistics on all the current runs it was asked to perform, its remaining task will also be distributed to the other simulation servers.
+The **simulations center** allows the running of simulations of games in the background according to the simulation parameters in the user interface (choose algorithm for a bot, desired tile value for a win and the number of desired simulations) and receiving statistics from the total number of servers connected to the main server.  
+The system has protection against falls, so if a simulation server falls and does not suffice to finished its games, its remaining task will also be distributed to the other simulation servers.
 
-In addition to maintained **backup server** that allows the system's ability to automatically recover from the *main server* crash and selecting one of the simulation servers to function as a primary server.
+In addition to maintained **backup server** that allows the system's ability to automatically recover from the *main server* crash and selecting one of the simulation servers to function as a main server.
 
 During the simulations the information is frequently backed up to the backup server so that a new main server is created, it does not lose the information we have collected so far.
 
-The real-time game is maintained by two servers (the **user interface server** and the **main server** with a dedicated game management process), where each cube is a process that holds value and location.  
+The real-time game is maintained by two servers (the **user interface server** and the **main server** with a dedicated game management process), where each cube is a process that holds value and position.  
 The user game system is built with a process pyramid mechanism (to be expanded later) to collect and maintain information on the board.
 
 <img src="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/screenshots/1.PNG" width="600">
@@ -33,7 +32,7 @@ The system was developed in Erlang (21.0), spread over 2,500 lines of code and d
 
 **1. Main computer (single at a time)**  
   Where the main server and the ui_server server will run.  
-  - Management of the graphical display and user interface - real-time game, simulation console and statistics in real time.  
+  - Management of the graphical and user interface - real-time game, simulation console and statistics in real time.  
   - Responsibility for communication and data transfer between the simulation servers (secondary) and the user interface as well as backup on the backup server.  
   - Responsibility for managing the processes, logic and logic of the game in real time.  
   - Monitoring the secondary servers and the backup server to protect against falls for proper operation.    
