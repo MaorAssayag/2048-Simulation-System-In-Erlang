@@ -55,7 +55,7 @@ start(MainNode) ->
   {stop, Reason :: term()} | ignore).
 init([MainNode]) ->
   put(server,{main_server,MainNode}),
-  ets:new(stats,[set,named_table,public]),
+  ets:new(stats,[set,named_table,public,{read_concurrency, true},{write_concurrency, true}]),
   ets:insert(stats, {threshold, 2048}),
   ets:insert(stats, {wins, 0}),
   ets:insert(stats, {losts, 0}),
@@ -161,6 +161,11 @@ handle_cast({request_bots, Num, DecisionID, Threshold}, State = #state{totalBots
   %gen_server:cast(get(server),{update_stats,NumOfValidBots,0,0,0,0}),
   {noreply ,State#state{totalBots=NumOfBots+Num}};
 
+handle_cast({update_main_node, MainNode}, State) ->
+  io:format("simulation_server: update main node to ~p ~n", [atom_to_list(MainNode)]),
+  put(server,{main_server,MainNode}),
+  {noreply, State#state{main_server_pid = MainNode}};
+
 handle_cast({kill_simulation_server}, State) ->
   io:format("simulation_server ~p: recevied request to kill simulation server ~p ~n", [atom_to_list(node()), self()]),
   exit(self(),exit),
@@ -236,7 +241,7 @@ update_main_server_timer(SimulationServer)->
 
 create_bots(0, _, _) -> ok;
 create_bots(NumOfBots, DecisionID, ThresholdForWin) ->
-  spawn(fun() -> process_simulation({simulation_server,node()}, DecisionID, ThresholdForWin) end),
+  spawn(fun() -> process_simulation(DecisionID, ThresholdForWin) end),
   %check_working({simulation_server,node()}, DecisionID, ThresholdForWin),
   %io:format("simulation_server: create bot ~p~n", [integer_to_list(NumOfBots)]),
   create_bots(NumOfBots-1, DecisionID, ThresholdForWin).
@@ -252,7 +257,7 @@ create_bots(NumOfBots, DecisionID, ThresholdForWin) ->
 %   gen_server:cast(SimulationServer, {update_from_bot, Won, Score, Moves}).
 
 
-process_simulation(SimulationServer, DecisionID, ThresholdForWin) ->
+process_simulation(DecisionID, ThresholdForWin) ->
   % Simulate a game
   {Won, Score, Moves} = game_simulation(#bot_game{
                 board=new_game_tile(new_game_tile(get_default_board(),true,false),true,false),

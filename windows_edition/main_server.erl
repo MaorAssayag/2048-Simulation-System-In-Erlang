@@ -216,7 +216,9 @@ handle_cast({deploy_backup, EtsTableList, Nodes}, #state{ui_server_pid=UI_server
                 EtsTableList),
   % Monitor live simulation servers
   io:format("main_server: deploy with live Nodes ~p~n", [Nodes]),
-  lists:foreach(fun({_, CurrNode}) -> monitor_node(CurrNode,true) end,
+  lists:foreach(fun({NodePID, CurrNode}) -> monitor_node(CurrNode,true),
+                                      gen_server:cast(NodePID, {update_main_node, node()})
+                                    end,
                 Nodes),
   % Update all states with the Ui server Pid
   update_all_ets_key_value(UI_server_PID),
