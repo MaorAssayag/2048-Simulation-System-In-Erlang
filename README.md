@@ -173,7 +173,7 @@ The bot performs random moves that are evenly distributed
 
 
 ### More information
-How to run etc in the following <a href="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/2048Erlang.pdf">pdf (Hebrew)</a>.
+How to run etc in the following <a href="https://github.com/MaorAssayag/2048-Simulation-System-In-Erlang/blob/master/docs/2048Erlang.pdf">pdf (Hebrew)</a>.
 
 
 ### Creators
