@@ -28,7 +28,7 @@ The user game system is built with a process pyramid mechanism (to be expanded l
 
 </br> </br> 
 ## System structure
-The system was developed in Erlang (21.0), spread over 2,500 lines of code and divided into 3 main entities:
+The system was developed in Erlang (21.0), spread over ~3k lines of code and divided into 3 main entities:
 
 **1. Main computer (single at a time)**  
   Where the main server and the ui_server server will run.  
